@@ -1,0 +1,55 @@
+name: CycleTracker
+options:
+  bundleIdPrefix: com.cycletracker
+  deploymentTarget:
+    iOS: 17.0
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+  createIntermediateGroups: true
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: "" # User needs to set this
+    PRODUCT_BUNDLE_IDENTIFIER: com.cycletracker.app
+    SWIFT_VERSION: 5.9
+    TARGETED_DEVICE_FAMILY: 1 # iPhone only for now
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+
+targets:
+  CycleTracker:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Models
+      - path: ViewModels
+      - path: Views
+      - path: Resources
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleName: CycleTracker
+        CFBundleDisplayName: CycleTracker
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UILaunchStoryboardName: LaunchScreen
+        UIRequiredDeviceCapabilities: [armv7]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+    settings:
+      base:
+        INFOPLIST_FILE: App/Info.plist
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_PREVIEWS: YES
+    dependencies:
+      - framework: SwiftUI.framework
+        weak: true

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>CycleTracker</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/moment"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
+	</head>
+	<body class="bg-gray-100">
+		<div class="container mx-auto px-4 py-8">
+			<header class="text-center mb-8">
+				<h1 class="text-3xl font-bold text-gray-800">CycleTracker</h1>
+				<p class="text-gray-600">Track your cycles and monitor serum levels</p>
+			</header>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<!-- Dashboard -->
+				<div class="bg-white rounded-lg shadow p-6 col-span-2">
+					<h2 class="text-xl font-semibold mb-4">Serum Levels</h2>
+					<div style="height: 400px; position: relative">
+						<canvas id="serumLevelsChart"></canvas>
+					</div>
+				</div>
+
+				<!-- Log Entry -->
+				<div class="bg-white rounded-lg shadow p-6">
+					<h2 class="text-xl font-semibold mb-4">Log Administration</h2>
+					<form id="logForm" class="space-y-4">
+						<div>
+							<label class="block text-sm font-medium text-gray-700"
+								>Date</label
+							>
+							<input
+								type="datetime-local"
+								id="adminDate"
+								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+							/>
+						</div>
+
+						<div>
+							<label class="block text-sm font-medium text-gray-700"
+								>Compound</label
+							>
+							<select
+								id="compound"
+								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+							>
+								<option value="test_e">Testosterone Enanthate</option>
+								<option value="test_c">Testosterone Cypionate</option>
+								<option value="nand_d">Nandrolone Decanoate</option>
+								<option value="tren_a">Trenbolone Acetate</option>
+								<option value="tren_e">Trenbolone Enanthate</option>
+								<option value="mast_p">Masteron Propionate</option>
+								<option value="mast_e">Masteron Enanthate</option>
+								<option value="bold_u">Boldenone Undecylenate</option>
+							</select>
+						</div>
+
+						<div>
+							<label class="block text-sm font-medium text-gray-700"
+								>Dosage (mg)</label
+							>
+							<input
+								type="number"
+								id="dosage"
+								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+							/>
+						</div>
+
+						<div>
+							<label class="block text-sm font-medium text-gray-700"
+								>Site</label
+							>
+							<select
+								id="site"
+								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+							>
+								<option value="glute_right">Right Gluteus</option>
+								<option value="glute_left">Left Gluteus</option>
+								<option value="quad_right">Right Quadriceps</option>
+								<option value="quad_left">Left Quadriceps</option>
+								<option value="delt_right">Right Deltoid</option>
+								<option value="delt_left">Left Deltoid</option>
+							</select>
+						</div>
+
+						<button
+							type="submit"
+							class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+						>
+							Log Administration
+						</button>
+					</form>
+				</div>
+
+				<!-- Site Distribution -->
+				<div class="bg-white rounded-lg shadow p-6">
+					<h2 class="text-xl font-semibold mb-4">Site Distribution</h2>
+					<canvas id="siteDistributionChart"></canvas>
+				</div>
+
+				<!-- All Administrations Log -->
+				<div class="bg-white rounded-lg shadow p-6 col-span-2">
+					<h2 class="text-xl font-semibold mb-4">Administration Log</h2>
+					<div class="overflow-x-auto">
+						<table class="min-w-full">
+							<thead>
+								<tr class="bg-gray-50">
+									<th class="px-4 py-2 text-left">Date</th>
+									<th class="px-4 py-2 text-left">Compound</th>
+									<th class="px-4 py-2 text-left">Dosage</th>
+									<th class="px-4 py-2 text-left">Site</th>
+									<th class="px-4 py-2 text-left">Actions</th>
+								</tr>
+							</thead>
+							<tbody id="adminLog">
+								<!-- Logs will be inserted here -->
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Edit Modal -->
+		<div
+			id="editModal"
+			class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
+		>
+			<div
+				class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+			>
+				<h3 class="text-lg font-semibold mb-4">Edit Administration</h3>
+				<form id="editForm" class="space-y-4">
+					<input type="hidden" id="editIndex" />
+					<div>
+						<label class="block text-sm font-medium text-gray-700">Date</label>
+						<input
+							type="datetime-local"
+							id="editDate"
+							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700"
+							>Compound</label
+						>
+						<select
+							id="editCompound"
+							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+						>
+							<option value="test_e">Testosterone Enanthate</option>
+							<option value="test_c">Testosterone Cypionate</option>
+							<option value="nand_d">Nandrolone Decanoate</option>
+							<option value="tren_a">Trenbolone Acetate</option>
+							<option value="tren_e">Trenbolone Enanthate</option>
+							<option value="mast_p">Masteron Propionate</option>
+							<option value="mast_e">Masteron Enanthate</option>
+							<option value="bold_u">Boldenone Undecylenate</option>
+						</select>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700"
+							>Dosage (mg)</label
+						>
+						<input
+							type="number"
+							id="editDosage"
+							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700">Site</label>
+						<select
+							id="editSite"
+							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+						>
+							<option value="glute_right">Right Gluteus</option>
+							<option value="glute_left">Left Gluteus</option>
+							<option value="quad_right">Right Quadriceps</option>
+							<option value="quad_left">Left Quadriceps</option>
+							<option value="delt_right">Right Deltoid</option>
+							<option value="delt_left">Left Deltoid</option>
+						</select>
+					</div>
+					<div class="flex justify-end space-x-2">
+						<button
+							type="button"
+							onclick="closeEditModal()"
+							class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md"
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							class="px-4 py-2 bg-blue-600 text-white rounded-md"
+						>
+							Save
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<script>
+			window.onload = function () {
+				// Chart instances
+				let serumChart, siteChart;
+
+				// Compound definitions
+				const compounds = {
+					test_e: {
+						name: "Testosterone Enanthate",
+						halfLife: 168,
+						group: "testosterone",
+						color: "rgb(59, 130, 246)",
+					},
+					test_c: {
+						name: "Testosterone Cypionate",
+						halfLife: 192,
+						group: "testosterone",
+						color: "rgb(59, 130, 246)",
+					},
+					nand_d: {
+						name: "Nandrolone Decanoate",
+						halfLife: 360,
+						group: "nandrolone",
+						color: "rgb(16, 185, 129)",
+					},
+					tren_a: {
+						name: "Trenbolone Acetate",
+						halfLife: 48,
+						group: "trenbolone",
+						color: "rgb(249, 115, 22)",
+					},
+					tren_e: {
+						name: "Trenbolone Enanthate",
+						halfLife: 168,
+						group: "trenbolone",
+						color: "rgb(249, 115, 22)",
+					},
+					mast_p: {
+						name: "Masteron Propionate",
+						halfLife: 48,
+						group: "masteron",
+						color: "rgb(236, 72, 153)",
+					},
+					mast_e: {
+						name: "Masteron Enanthate",
+						halfLife: 168,
+						group: "masteron",
+						color: "rgb(236, 72, 153)",
+					},
+					bold_u: {
+						name: "Boldenone Undecylenate",
+						halfLife: 336,
+						group: "boldenone",
+						color: "rgb(139, 92, 246)",
+					},
+				};
+
+				// Sample data
+				let administrations = [
+					{
+						compound: "test_e",
+						dosage: 200,
+						site: "glute_right",
+						date: new Date(new Date().setDate(new Date().getDate() - 21)),
+					},
+					{
+						compound: "test_e",
+						dosage: 200,
+						site: "glute_left",
+						date: new Date(new Date().setDate(new Date().getDate() - 14)),
+					},
+					{
+						compound: "test_e",
+						dosage: 200,
+						site: "glute_right",
+						date: new Date(new Date().setDate(new Date().getDate() - 7)),
+					},
+					{
+						compound: "nand_d",
+						dosage: 150,
+						site: "quad_right",
+						date: new Date(new Date().setDate(new Date().getDate() - 20)),
+					},
+					{
+						compound: "nand_d",
+						dosage: 150,
+						site: "quad_left",
+						date: new Date(new Date().setDate(new Date().getDate() - 13)),
+					},
+					{
+						compound: "nand_d",
+						dosage: 150,
+						site: "quad_right",
+						date: new Date(new Date().setDate(new Date().getDate() - 6)),
+					},
+				];
+
+				// Set default date to now
+				document.getElementById("adminDate").value = new Date()
+					.toISOString()
+					.slice(0, 16);
+
+				// Register chart defaults
+				Chart.defaults.font.family =
+					'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+				Chart.defaults.font.size = 12;
+				Chart.defaults.color = "#666";
+
+				// Initialize charts
+				function initializeCharts() {
+					const serumCtx = document
+						.getElementById("serumLevelsChart")
+						.getContext("2d");
+					serumChart = new Chart(serumCtx, {
+						type: "line",
+						data: {
+							datasets: [],
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							animation: {
+								duration: 750,
+								easing: "easeInOutQuart",
+							},
+							scales: {
+								y: {
+									beginAtZero: true,
+									title: {
+										display: true,
+										text: "Serum Levels (mg)",
+										padding: 10,
+									},
+									ticks: {
+										padding: 5,
+										callback: function (value) {
+											return value.toFixed(1);
+										},
+									},
+									grid: {
+										drawBorder: false,
+										color: "rgba(0,0,0,0.1)",
+									},
+								},
+								x: {
+									type: "time",
+									adapters: {
+										date: {
+											locale: "en",
+										},
+									},
+									time: {
+										unit: "day",
+										parser: "MM/DD/YYYY HH:mm",
+										tooltipFormat: "ll",
+										displayFormats: {
+											day: "MMM D",
+										},
+									},
+									distribution: "linear",
+									title: {
+										display: true,
+										text: "Date",
+										padding: 10,
+									},
+									ticks: {
+										maxRotation: 45,
+										minRotation: 45,
+										autoSkip: true,
+										maxTicksLimit: 10,
+									},
+									grid: {
+										drawBorder: false,
+										color: "rgba(0,0,0,0.1)",
+									},
+								},
+							},
+							plugins: {
+								legend: {
+									position: "top",
+									labels: {
+										padding: 20,
+										usePointStyle: true,
+									},
+								},
+								tooltip: {
+									mode: "index",
+									intersect: false,
+									callbacks: {
+										label: function (context) {
+											return (
+												context.dataset.label +
+												": " +
+												context.parsed.y.toFixed(1) +
+												" mg"
+											);
+										},
+									},
+								},
+							},
+							interaction: {
+								mode: "nearest",
+								axis: "x",
+								intersect: false,
+							},
+						},
+					});
+
+					const siteCtx = document
+						.getElementById("siteDistributionChart")
+						.getContext("2d");
+					siteChart = new Chart(siteCtx, {
+						type: "doughnut",
+						data: {
+							labels: [
+								"Right Gluteus",
+								"Left Gluteus",
+								"Right Quad",
+								"Left Quad",
+								"Right Delt",
+								"Left Delt",
+							],
+							datasets: [
+								{
+									data: [0, 0, 0, 0, 0, 0],
+									backgroundColor: [
+										"rgb(59, 130, 246)",
+										"rgb(16, 185, 129)",
+										"rgb(249, 115, 22)",
+										"rgb(236, 72, 153)",
+										"rgb(139, 92, 246)",
+										"rgb(245, 158, 11)",
+									],
+								},
+							],
+						},
+						options: {
+							responsive: true,
+						},
+					});
+				}
+
+				// Update charts function
+				function updateCharts() {
+					const now = new Date();
+					let timePoints = [];
+
+					// Generate time points
+					if (administrations.length === 0) {
+						// If no administrations, show last 14 days
+						const endDate = moment();
+						const startDate = moment().subtract(14, "days");
+
+						// Generate points every 6 hours
+						for (
+							let m = moment(startDate);
+							m.isSameOrBefore(endDate);
+							m.add(6, "hours")
+						) {
+							timePoints.push(m.toDate());
+						}
+					} else {
+						// Find date range from administrations
+						const dates = administrations.map((a) => moment(a.date));
+						const minDate = moment.min(dates).subtract(7, "days");
+						const maxDate = moment.max(dates).add(14, "days");
+
+						// Generate points every 6 hours within the range
+						for (
+							let m = moment(minDate);
+							m.isSameOrBefore(maxDate);
+							m.add(6, "hours")
+						) {
+							timePoints.push(m.toDate());
+						}
+					}
+
+					// Sort timePoints to ensure chronological order
+					timePoints.sort((a, b) => a - b);
+
+					// Calculate serum levels for each administration
+					const uniqueGroups = [
+						...new Set(Object.values(compounds).map((c) => c.group)),
+					];
+					const datasets = uniqueGroups
+						.map((group) => {
+							const compound = Object.values(compounds).find(
+								(c) => c.group === group
+							);
+
+							// Calculate levels for each time point
+							const data = timePoints
+								.map((date) => {
+									let totalLevel = 0;
+									const relevantAdmins = administrations.filter(
+										(admin) => compounds[admin.compound].group === group
+									);
+
+									relevantAdmins.forEach((admin) => {
+										const hoursElapsed = moment(date).diff(
+											moment(admin.date),
+											"hours"
+										);
+										if (hoursElapsed >= 0) {
+											const level =
+												admin.dosage *
+												Math.pow(
+													0.5,
+													hoursElapsed / compounds[admin.compound].halfLife
+												);
+											if (!isNaN(level) && level > 0.1) {
+												totalLevel += level;
+											}
+										}
+									});
+
+									// Only include points with significant levels
+									if (totalLevel > 0.1) {
+										return {
+											x: date.getTime(),
+											y: parseFloat(totalLevel.toFixed(1)),
+										};
+									}
+									return null;
+								})
+								.filter((point) => point !== null);
+
+							// Only create dataset if we have valid data points
+							if (data.length > 0) {
+								return {
+									label: group.charAt(0).toUpperCase() + group.slice(1),
+									data: data,
+									borderColor: compound.color,
+									backgroundColor: compound.color,
+									tension: 0.3,
+									fill: false,
+									pointRadius: 0,
+									borderWidth: 2,
+									spanGaps: true,
+									cubicInterpolationMode: "monotone",
+								};
+							}
+							return null;
+						})
+						.filter((dataset) => dataset !== null);
+
+					// Update chart with new datasets
+					serumChart.data.datasets = datasets;
+
+					// Update chart options to fit data range
+					if (timePoints.length > 0) {
+						serumChart.options.scales.x.min = timePoints[0].getTime();
+						serumChart.options.scales.x.max =
+							timePoints[timePoints.length - 1].getTime();
+					}
+					serumChart.update();
+
+					// Update site distribution chart
+					const siteCounts = {
+						glute_right: 0,
+						glute_left: 0,
+						quad_right: 0,
+						quad_left: 0,
+						delt_right: 0,
+						delt_left: 0,
+					};
+					administrations.forEach((admin) => siteCounts[admin.site]++);
+					siteChart.data.datasets[0].data = Object.values(siteCounts);
+					siteChart.update();
+				}
+
+				// Update admin log function
+				function updateAdminLog() {
+					const logContainer = document.getElementById("adminLog");
+					logContainer.innerHTML = "";
+
+					administrations
+						.sort((a, b) => b.date - a.date)
+						.forEach((admin, index) => {
+							const row = document.createElement("tr");
+							row.className = index % 2 === 0 ? "bg-white" : "bg-gray-50";
+							row.innerHTML = `
+								<td class="px-4 py-2">${admin.date.toLocaleString()}</td>
+								<td class="px-4 py-2">${compounds[admin.compound].name}</td>
+								<td class="px-4 py-2">${admin.dosage}mg</td>
+								<td class="px-4 py-2">${admin.site
+									.replace("_", " ")
+									.replace(
+										/\w\S*/g,
+										(w) => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase()
+									)}</td>
+								<td class="px-4 py-2">
+									<button onclick="editAdmin(${index})" class="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
+									<button onclick="deleteAdmin(${index})" class="text-red-600 hover:text-red-800">Delete</button>
+								</td>
+							`;
+							logContainer.appendChild(row);
+						});
+				}
+
+				// Save to localStorage function
+				function saveToLocalStorage() {
+					localStorage.setItem(
+						"administrations",
+						JSON.stringify(administrations)
+					);
+				}
+
+				// Edit admin function
+				window.editAdmin = function (index) {
+					const admin = administrations[index];
+					document.getElementById("editIndex").value = index;
+					document.getElementById("editDate").value = admin.date
+						.toISOString()
+						.slice(0, 16);
+					document.getElementById("editCompound").value = admin.compound;
+					document.getElementById("editDosage").value = admin.dosage;
+					document.getElementById("editSite").value = admin.site;
+					document.getElementById("editModal").classList.remove("hidden");
+				};
+
+				// Close edit modal function
+				window.closeEditModal = function () {
+					document.getElementById("editModal").classList.add("hidden");
+				};
+
+				// Delete admin function
+				window.deleteAdmin = function (index) {
+					if (confirm("Are you sure you want to delete this administration?")) {
+						administrations.splice(index, 1);
+						updateCharts();
+						updateAdminLog();
+						saveToLocalStorage();
+					}
+				};
+
+				// Initialize event listeners
+				document
+					.getElementById("logForm")
+					.addEventListener("submit", function (e) {
+						e.preventDefault();
+						const compound = document.getElementById("compound").value;
+						const dosage = parseFloat(document.getElementById("dosage").value);
+						const site = document.getElementById("site").value;
+						const date = new Date(document.getElementById("adminDate").value);
+
+						administrations.push({
+							compound,
+							dosage,
+							site,
+							date,
+						});
+
+						updateCharts();
+						updateAdminLog();
+						saveToLocalStorage();
+						this.reset();
+						document.getElementById("adminDate").value = new Date()
+							.toISOString()
+							.slice(0, 16);
+					});
+
+				document
+					.getElementById("editForm")
+					.addEventListener("submit", function (e) {
+						e.preventDefault();
+						const index = document.getElementById("editIndex").value;
+
+						administrations[index] = {
+							compound: document.getElementById("editCompound").value,
+							dosage: parseFloat(document.getElementById("editDosage").value),
+							site: document.getElementById("editSite").value,
+							date: new Date(document.getElementById("editDate").value),
+						};
+
+						updateCharts();
+						updateAdminLog();
+						saveToLocalStorage();
+						closeEditModal();
+					});
+
+				// Load saved data if available
+				const savedData = localStorage.getItem("administrations");
+				if (savedData) {
+					administrations = JSON.parse(savedData).map((admin) => ({
+						...admin,
+						date: new Date(admin.date),
+					}));
+				}
+
+				// Initialize charts and update display
+				initializeCharts();
+				updateCharts();
+				updateAdminLog();
+			};
+		</script>
+	</body>
+</html>
